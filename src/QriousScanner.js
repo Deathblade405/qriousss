@@ -6,7 +6,7 @@ const App = () => {
   const [decodedData, setDecodedData] = useState("");
   const [cameraList, setCameraList] = useState([]);
   const [selectedCamera, setSelectedCamera] = useState(null);
-  const [zoom, setZoom] = useState(250); // Default zoom value
+  const [qrBoxSize, setQrBoxSize] = useState(250); // Initial QR box size
   const scannerRef = useRef(null);
 
   // Get available cameras
@@ -14,7 +14,7 @@ const App = () => {
     Html5Qrcode.getCameras().then((cameras) => {
       if (cameras && cameras.length > 0) {
         setCameraList(cameras);
-        setSelectedCamera(cameras[0].id); // Default to the first camera
+        setSelectedCamera(cameras[0].id); // Automatically select the first camera
       }
     });
   }, []);
@@ -24,7 +24,7 @@ const App = () => {
     if (selectedCamera) {
       const html5QrcodeScanner = new Html5QrcodeScanner("reader", {
         fps: 10, // Frame-per-second for scanning
-        qrbox: { width: zoom, height: zoom }, // Use dynamic zoom value
+        qrbox: { width: qrBoxSize, height: qrBoxSize }, // Dynamic zoom value
         facingMode: selectedCamera.includes("front") ? "user" : "environment",
       });
 
@@ -32,45 +32,30 @@ const App = () => {
         setDecodedData(decodedText);
         console.log("Decoded Text:", decodedText);
         html5QrcodeScanner.clear(); // Optionally stop scanning
+      }, (errorMessage) => {
+        // Handle error (optional)
+        console.log(errorMessage);
       });
     }
+  };
+
+  // Adjust QR box size dynamically (auto-zoom)
+  const handleScanSuccess = (decodedText, decodedResult) => {
+    const qrCodeSize = decodedResult.result.size || 250; // Adjust size logic as needed
+    const newQrBoxSize = qrCodeSize > 250 ? qrCodeSize : 250; // Ensure a minimum size of 250px
+    setQrBoxSize(newQrBoxSize);
+    setDecodedData(decodedText);
+    console.log("Decoded Text:", decodedText);
   };
 
   return (
     <div className="App">
       <h1>QR Scanner</h1>
 
-      {/* Camera Selection */}
+      {/* Automatically selects the first available camera */}
       <div>
-        <label>Select Camera:</label>
-        <select
-          value={selectedCamera}
-          onChange={(e) => setSelectedCamera(e.target.value)}
-        >
-          {cameraList.map((camera) => (
-            <option key={camera.id} value={camera.id}>
-              {camera.label || `Camera ${camera.id}`}
-            </option>
-          ))}
-        </select>
+        <button onClick={startWebcamScan}>Start Webcam Scan</button>
       </div>
-
-      {/* Zoom Control */}
-      <div>
-        <label>Zoom:</label>
-        <input
-          type="range"
-          min="100"
-          max="400"
-          value={zoom}
-          onChange={(e) => setZoom(e.target.value)}
-          style={{ width: "200px" }}
-        />
-        <span>{zoom}</span>
-      </div>
-
-      {/* Start Webcam Scan Button */}
-      <button onClick={startWebcamScan}>Start Webcam Scan</button>
 
       {/* QR Code Scanner Display */}
       <div id="reader" ref={scannerRef}></div>
